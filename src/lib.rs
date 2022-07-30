@@ -26,6 +26,9 @@ impl<I: Iterator<Item=&'static str>> Iterator for WordList<I> {
     }
 }
 
+// TODO: some word lines are actually a list of related words, separated by ';'.
+// We should return all of them as separate elements
+// For example: "ZYMOLOGIC; ZYMOLOGICAL"
 fn get_word<'a>(paragraph: &Vec<&'a str>) -> Option<&'a str> {
     if paragraph.len() != 2 {
         return None;
