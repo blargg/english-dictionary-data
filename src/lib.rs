@@ -22,13 +22,19 @@ impl<I: Iterator<Item=&'static str>> Iterator for WordList<I> {
                 self.paragraph.push(line)
             } else {
                 // new paragraph
-                // TODO, this might miss the last paragraph
-                self.queue = get_word(&self.paragraph);
-                self.paragraph.clear();
+                // TODO, this might miss the last paragraph because we only queue the words when we hit a new paragraph.
+                self.queue_words();
                 return self.next();
             }
         }
         None
+    }
+}
+
+impl<I> WordList<I> {
+    fn queue_words<'a>(&mut self) {
+        self.queue = get_word(&self.paragraph);
+        self.paragraph.clear();
     }
 }
 
