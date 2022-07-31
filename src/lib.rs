@@ -3,6 +3,8 @@ const DICT_TEXT: &'static str = include_str!("../data/dictionary.txt");
 
 pub struct WordList<I> {
     lines: I,
+    /// Sometimes we get more than one line, this is used to queue up the values.
+    queue: Vec<&'static str>,
     paragraph: Vec<&'static str>,
 }
 
@@ -10,6 +12,10 @@ impl<I: Iterator<Item=&'static str>> Iterator for WordList<I> {
     type Item = &'static str;
 
     fn next(&mut self) -> Option<Self::Item> {
+        if self.queue.len() > 0 {
+            return self.queue.pop();
+        }
+
         self.paragraph.clear();
         while let Some(line) = self.lines.next() {
             if !line.trim().is_empty() {
@@ -17,21 +23,18 @@ impl<I: Iterator<Item=&'static str>> Iterator for WordList<I> {
             } else {
                 // new paragraph
                 // TODO, this might miss the last paragraph
-                let word = get_word(&self.paragraph);
+                self.queue = get_word(&self.paragraph);
                 self.paragraph.clear();
-                return word.or_else(|| self.next());
+                return self.next();
             }
         }
         None
     }
 }
 
-// TODO: some word lines are actually a list of related words, separated by ';'.
-// We should return all of them as separate elements
-// For example: "ZYMOLOGIC; ZYMOLOGICAL"
-fn get_word<'a>(paragraph: &Vec<&'a str>) -> Option<&'a str> {
+fn get_word<'a>(paragraph: &Vec<&'a str>) -> Vec<&'a str> {
     if paragraph.len() != 2 {
-        return None;
+        return vec![];
     }
 
     let line = paragraph[0];
@@ -41,10 +44,10 @@ fn get_word<'a>(paragraph: &Vec<&'a str>) -> Option<&'a str> {
         line.starts_with("Syn") ||
         line.starts_with("Note")
     {
-        return None;
+        return vec![];
     }
 
-    Some(line)
+    line.split(';').map(|s| s.trim()).collect::<Vec<_>>()
 }
 
 // fn all_words() -> impl Iterator<Item=&'static str> {
@@ -59,6 +62,7 @@ pub fn all_words() -> WordList<impl Iterator<Item=&'static str>> {
 
     WordList {
         lines,
+        queue: Vec::new(),
         paragraph: Vec::new(),
     }
 
@@ -66,9 +70,11 @@ pub fn all_words() -> WordList<impl Iterator<Item=&'static str>> {
 
 #[cfg(test)]
 mod tests {
+    use crate::all_words;
+
     #[test]
-    fn it_works() {
-        let result = 2 + 2;
-        assert_eq!(result, 4);
+    fn gets_words() {
+        assert_eq!("A", all_words().nth(0).unwrap());
+        assert_eq!("AARONICAL", all_words().nth(10).unwrap());
     }
 }
